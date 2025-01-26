@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 using Microsoft.Win32;
 using System.Text.Json;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace RepoToLLMDatasetGenerator
 {
@@ -24,12 +25,9 @@ namespace RepoToLLMDatasetGenerator
     /// </summary>
     public partial class MainWindow : Window
     {
-
         private List<string> selectedFiles = new List<string>();
         private Dictionary<string, bool> directoryCheckedState = new Dictionary<string, bool>();
-        private HashSet<string> discoveredExtensions = new HashSet<string>(); // Список найденных расширений
-        private Dictionary<string, bool> extensionFilterState = new Dictionary<string, bool>(); // Состояние фильтра расширений
-        private ObservableCollection<ExtensionItem> extensionListItems = new ObservableCollection<ExtensionItem>(); // Для ListBox с чекбоксами
+        private ObservableCollection<ExtensionItem> extensionListItems = new ObservableCollection<ExtensionItem>();
 
         public MainWindow()
         {
@@ -49,22 +47,48 @@ namespace RepoToLLMDatasetGenerator
             //}
         }
 
+        private void LocalFolderPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(LocalFolderPathTextBox.Text) && Directory.Exists(LocalFolderPathTextBox.Text))
+            {
+                PopulateDirectoryTreeView(LocalFolderPathTextBox.Text);
+            }
+        }
+
+        private void SourceTypeRadioButton_Checked(object sender, RoutedEventArgs e)
+        {
+            if (LocalFolderPathTextBox != null && BrowseFolderButton != null && RemoteRepoUrlTextBox != null && LocalFolderRadioButton != null && RemoteRepoRadioButton != null)
+            {
+                if (LocalFolderRadioButton.IsChecked == true)
+                {
+                    LocalFolderPathTextBox.IsEnabled = true;
+                    BrowseFolderButton.IsEnabled = true;
+                    RemoteRepoUrlTextBox.IsEnabled = false;
+                }
+                else if (RemoteRepoRadioButton.IsChecked == true)
+                {
+                    LocalFolderPathTextBox.IsEnabled = false;
+                    BrowseFolderButton.IsEnabled = false;
+                    RemoteRepoUrlTextBox.IsEnabled = true;
+                }
+            }
+        }
+
+
         private void PopulateDirectoryTreeView(string path)
         {
             DirectoryTreeView.Items.Clear();
             selectedFiles.Clear();
             directoryCheckedState.Clear();
-            discoveredExtensions.Clear(); // Очищаем список расширений
-            extensionFilterState.Clear();   // Очищаем состояние фильтра расширений
-
+            extensionListItems.Clear();
             if (Directory.Exists(path))
             {
                 TreeViewItem rootItem = CreateTreeViewItem(path, true);
                 rootItem.IsExpanded = true;
                 DirectoryTreeView.Items.Add(rootItem);
                 PopulateTreeViewItems(rootItem);
-                PopulateFileExtensionsListBox(); // Заполняем ListBox расширениями после обхода дерева
             }
+            PopulateFileExtensionsListBox();
         }
 
         private void PopulateTreeViewItems(TreeViewItem parentItem)
@@ -89,11 +113,6 @@ namespace RepoToLLMDatasetGenerator
                                         .Where(f => !System.IO.Path.GetFileName(f).StartsWith(".")).ToArray();
                 foreach (string file in files)
                 {
-                    string extension = System.IO.Path.GetExtension(file).ToLowerInvariant();
-                    if (!string.IsNullOrEmpty(extension))
-                    {
-                        discoveredExtensions.Add(extension); // Собираем расширения файлов
-                    }
                     TreeViewItem fileItem = CreateTreeViewItem(file, false);
                     parentItem.Items.Add(fileItem);
                 }
@@ -103,22 +122,6 @@ namespace RepoToLLMDatasetGenerator
                 MessageBox.Show($"Ошибка доступа к директории: {parentPath} - {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-
-        private void ExtensionCheckBox_Checked(object sender, RoutedEventArgs e)
-        {
-            CheckBox checkBox = (CheckBox)sender;
-            string extension = checkBox.Tag.ToString();
-            extensionFilterState[extension] = true;
-        }
-
-        private void ExtensionCheckBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-            CheckBox checkBox = (CheckBox)sender;
-            string extension = checkBox.Tag.ToString();
-            extensionFilterState[extension] = false;
-        }
-
 
         private TreeViewItem CreateTreeViewItem(string path, bool isDirectory)
         {
@@ -146,30 +149,12 @@ namespace RepoToLLMDatasetGenerator
                     if (headerCheckBox != null && headerCheckBox.IsChecked != true)
                     {
                         headerCheckBox.IsChecked = true;
+                        SelectAllChildren(item, true); // Select children when directory expands and should be checked
                     }
                 }
             }
         }
 
-        private void SourceTypeRadioButton_Checked(object sender, RoutedEventArgs e)
-        {
-            if (LocalFolderPathTextBox != null && BrowseFolderButton != null && RemoteRepoUrlTextBox != null)
-            {
-                if (LocalFolderRadioButton.IsChecked == true)
-                {
-                    LocalFolderPathTextBox.IsEnabled = true;
-                    BrowseFolderButton.IsEnabled = true;
-                    RemoteRepoUrlTextBox.IsEnabled = false;
-                }
-                else if (RemoteRepoRadioButton.IsChecked == true)
-                {
-                    LocalFolderPathTextBox.IsEnabled = false;
-                    BrowseFolderButton.IsEnabled = false;
-                    RemoteRepoUrlTextBox.IsEnabled = true;
-                }
-            }
-
-        }
 
         private void GenerateDatasetButton_Click(object sender, RoutedEventArgs e)
         {
@@ -186,11 +171,10 @@ namespace RepoToLLMDatasetGenerator
             }
 
 
-            List<string> filteredSelectedFiles = FilterFilesByExtension(selectedFiles); // Фильтруем файлы по расширениям
+            List<string> filteredSelectedFiles = FilterFilesByExtension(selectedFiles);
             DatasetGenerator generator = new DatasetGenerator();
-            List<string> datasetStrings = generator.GenerateDatasetStrings(filteredSelectedFiles, LocalFolderPathTextBox.Text); // Используем отфильтрованный список
+            List<string> datasetStrings = generator.GenerateDatasetStrings(filteredSelectedFiles, LocalFolderPathTextBox.Text);
             string datasetContent = string.Join("\n", datasetStrings);
-
 
             string outputFileName = System.IO.Path.GetFileName(LocalFolderPathTextBox.Text) + "_dataset.txt";
             string outputPath = System.IO.Path.Combine(Environment.CurrentDirectory, outputFileName);
@@ -206,21 +190,6 @@ namespace RepoToLLMDatasetGenerator
             }
         }
 
-        private List<string> FilterFilesByExtension(List<string> files, Dictionary<string, bool> extensionFilter)
-        {
-            List<string> filteredFiles = new List<string>();
-            foreach (string file in files)
-            {
-                string extension = System.IO.Path.GetExtension(file).ToLowerInvariant();
-                if (string.IsNullOrEmpty(extension) || extensionFilter.ContainsKey(extension) && extensionFilter[extension])
-                {
-                    filteredFiles.Add(file); // Включаем файл, если расширение пустое или есть в фильтре и выбрано
-                }
-            }
-            return filteredFiles;
-        }
-
-
         private void ItemCheckBox_Checked(object sender, RoutedEventArgs e)
         {
             CheckBox checkBox = (CheckBox)sender;
@@ -230,14 +199,25 @@ namespace RepoToLLMDatasetGenerator
             if (Directory.Exists(path))
             {
                 directoryCheckedState[path] = true;
-                SelectAllChildren(item, true);
+                if (!item.IsExpanded)
+                {
+                    item.IsExpanded = true;
+                    // SelectAllChildren will be called in SubDirItem_Expanded after expansion
+                }
+                else
+                {
+                    SelectAllChildren(item, true);
+                }
+
             }
             else
             {
                 if (!selectedFiles.Contains(path))
                 {
                     selectedFiles.Add(path);
+                    Debug.WriteLine($"Файл добавлен в selectedFiles: {path}");
                 }
+                PopulateFileExtensionsListBox();
             }
         }
 
@@ -255,61 +235,75 @@ namespace RepoToLLMDatasetGenerator
             else
             {
                 selectedFiles.Remove(path);
+                Debug.WriteLine($"Файл удален из selectedFiles: {path}");
+                PopulateFileExtensionsListBox();
             }
-            PopulateFileExtensionsListBox();
         }
 
 
         private void SelectAllChildren(TreeViewItem item, bool isChecked)
         {
+            if (item == null) return; // Null check for item
+
             foreach (var childItem in item.Items)
             {
                 if (childItem is TreeViewItem treeViewChild)
                 {
-                    CheckBox childCheckBox = (CheckBox)treeViewChild.Header;
+                    CheckBox childCheckBox = (CheckBox)treeViewChild.Header as CheckBox; // Safe cast
                     if (childCheckBox != null)
                     {
                         childCheckBox.IsChecked = isChecked;
+                    }
+                    if (Directory.Exists(treeViewChild.Tag.ToString())) // Recursive call for subdirectories
+                    {
+                        SelectAllChildren(treeViewChild, isChecked);
                     }
                 }
             }
         }
 
+
         private void DirectoryTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            PopulateFileExtensionsListBox(); // Обновляем список расширений при смене выделения в дереве (можно изменить логику вызова)
+            Debug.WriteLine("DirectoryTreeView_SelectedItemChanged вызван");
+            PopulateFileExtensionsListBox();
         }
 
 
         private void PopulateFileExtensionsListBox()
         {
-            extensionListItems.Clear(); // Очищаем список расширений перед заполнением
+            Debug.WriteLine("PopulateFileExtensionsListBox вызван");
+            extensionListItems.Clear();
             HashSet<string> extensions = new HashSet<string>();
+
+            Debug.WriteLine($"selectedFiles count in PopulateFileExtensionsListBox: {selectedFiles.Count}");
 
             foreach (string filePath in selectedFiles)
             {
-                if (File.Exists(filePath)) // Проверяем, что это файл
+                if (File.Exists(filePath))
                 {
                     string extension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
                     if (!string.IsNullOrEmpty(extension))
                     {
                         extensions.Add(extension);
+                        Debug.WriteLine($"Добавлено расширение: {extension} для файла: {filePath}");
                     }
                 }
             }
 
             foreach (string ext in extensions.OrderBy(e => e))
             {
-                extensionListItems.Add(new ExtensionItem { Extension = ext, IsChecked = true }); // По умолчанию все расширения выбраны
+                extensionListItems.Add(new ExtensionItem { Extension = ext, IsChecked = true });
+                Debug.WriteLine($"ExtensionItem добавлен в ListBox: {ext}");
             }
         }
+
 
         private List<string> FilterFilesByExtension(List<string> files)
         {
             List<string> filteredFiles = new List<string>();
             HashSet<string> checkedExtensions = new HashSet<string>();
 
-            // Собираем выбранные расширения из ListBox
             foreach (var item in extensionListItems)
             {
                 if (item.IsChecked)
@@ -321,7 +315,7 @@ namespace RepoToLLMDatasetGenerator
             foreach (string file in files)
             {
                 string extension = System.IO.Path.GetExtension(file).ToLowerInvariant();
-                if (string.IsNullOrEmpty(extension) || checkedExtensions.Contains(extension)) // Включаем файлы без расширения или с выбранным расширением
+                if (string.IsNullOrEmpty(extension) || checkedExtensions.Contains(extension))
                 {
                     filteredFiles.Add(file);
                 }
@@ -329,22 +323,14 @@ namespace RepoToLLMDatasetGenerator
             return filteredFiles;
         }
 
-        public class ExtensionItem
-        {
-            public string Extension { get; set; }
-            public bool IsChecked { get; set; }
-            public string DisplayName => string.IsNullOrEmpty(Extension) ? "(без расширения)" : Extension; // Для отображения в ListBox
-        }
 
-
-        private void LocalFolderPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            
-            if (!string.IsNullOrWhiteSpace(LocalFolderPathTextBox.Text) && Directory.Exists(LocalFolderPathTextBox.Text))
-            {
-                PopulateDirectoryTreeView(LocalFolderPathTextBox.Text);
-            }
-        }
     }
 
+
+    public class ExtensionItem
+    {
+        public string Extension { get; set; }
+        public bool IsChecked { get; set; }
+        public string DisplayName => string.IsNullOrEmpty(Extension) ? "(без расширения)" : Extension;
+    }
 }
