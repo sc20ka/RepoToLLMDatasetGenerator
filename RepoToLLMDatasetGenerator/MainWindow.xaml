@@ -1,0 +1,57 @@
+﻿<Window x:Class="RepoToLLMDatasetGenerator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RepoToLLMDatasetGenerator"
+        mc:Ignorable="d"
+        Title="Repo to LLM Dataset Generator" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <!-- Разделитель -->
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Выбор источника репозитория -->
+        <GroupBox Header="Источник репозитория" Margin="10" Grid.ColumnSpan="3">
+            <StackPanel Orientation="Vertical" Margin="5">
+                <RadioButton Content="Локальная папка" IsChecked="True" GroupName="RepoSource" Name="LocalFolderRadioButton" Checked="SourceTypeRadioButton_Checked"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Путь к локальной папке:" Margin="5,5,5,0" VerticalAlignment="Center"/>
+                    <TextBox Name="LocalFolderPathTextBox" Width="300" Margin="5,0,5,5" IsEnabled="True" TextChanged="LocalFolderPathTextBox_TextChanged"/>
+                    <Button Content="Обзор" Margin="5" Padding="5,2" Name="BrowseFolderButton" Click="BrowseFolderButton_Click"/>
+                </StackPanel>
+                <RadioButton Content="URL удаленного репозитория (Git - в разработке)" GroupName="RepoSource" Name="RemoteRepoRadioButton" IsEnabled="False" Checked="SourceTypeRadioButton_Checked"/>
+                <TextBox Name="RemoteRepoUrlTextBox" Width="300" Margin="38,0,5,5" IsEnabled="False"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Дерево директорий -->
+        <GroupBox Header="Выбор файлов и директорий" Margin="10" Grid.Row="1" Grid.Column="0">
+            <TreeView Name="DirectoryTreeView" Margin="5"  SelectedItemChanged="DirectoryTreeView_SelectedItemChanged"/>
+        </GroupBox>
+
+        <!-- Разделитель -->
+        <GridSplitter Grid.Column="1" Grid.Row="1" Width="5" HorizontalAlignment="Center" ResizeDirection="Columns" />
+
+        <!-- Фильтр расширений файлов -->
+        <GroupBox Header="Фильтр расширений файлов" Margin="10" Grid.Row="1" Grid.Column="2">
+            <ListBox Name="ExtensionListBox" Margin="5" SelectionMode="Multiple"/>
+        </GroupBox>
+
+
+        <!-- Настройки вывода и генерация -->
+        <GroupBox Header="Настройки вывода" Margin="10" Grid.Row="2" Grid.ColumnSpan="3">
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <Button Content="Сгенерировать датасет" Margin="5" Padding="10,5" Name="GenerateDatasetButton" Click="GenerateDatasetButton_Click"/>
+            </StackPanel>
+        </GroupBox>
+    </Grid>
+</Window>
