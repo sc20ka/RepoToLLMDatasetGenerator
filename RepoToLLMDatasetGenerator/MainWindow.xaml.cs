@@ -149,7 +149,7 @@ namespace RepoToLLMDatasetGenerator
                     if (headerCheckBox != null && headerCheckBox.IsChecked != true)
                     {
                         headerCheckBox.IsChecked = true;
-                        SelectAllChildren(item, true); // Select children when directory expands and should be checked
+                        SelectAllChildren(item, true);
                     }
                 }
             }
@@ -199,16 +199,8 @@ namespace RepoToLLMDatasetGenerator
             if (Directory.Exists(path))
             {
                 directoryCheckedState[path] = true;
-                if (!item.IsExpanded)
-                {
-                    item.IsExpanded = true;
-                    // SelectAllChildren will be called in SubDirItem_Expanded after expansion
-                }
-                else
-                {
-                    SelectAllChildren(item, true);
-                }
-
+                item.IsExpanded = true; // Expand directory regardless
+                SelectAllChildren(item, true); // Call SelectAllChildren immediately
             }
             else
             {
