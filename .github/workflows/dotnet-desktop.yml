@@ -36,7 +36,7 @@ jobs:
         run: dotnet test
 
       - name: Restore the application
-        run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration -verbosity:detailed
+        run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration -verbosity:detailed /p:Platform=$env:Architecture
 
       - name: Publish the application
         run: msbuild $env:Wpf_Project_Path /p:Configuration=$env:Configuration /p:Platform=$env:Architecture /t:publish -verbosity:detailed
