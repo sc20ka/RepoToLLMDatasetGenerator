@@ -10,7 +10,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
-            <!-- Разделитель -->
+
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
@@ -18,13 +18,18 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+        
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,10,0" Grid.ColumnSpan="3">
+            <Button Content="RU" Tag="ru" Click="LanguageButton_Click" Height="25" Padding="5,2" Margin="0,0,5,0"/>
+            <Button Content="ZH" Tag="zh" Click="LanguageButton_Click" Height="25" Padding="5,2" Margin="0,0,5,0"/>
+            <Button Content="EN" Tag="en" Click="LanguageButton_Click" Height="25" Padding="5,2" Margin="0,0,5,0"/>
+        </StackPanel>
 
-        <!-- Выбор источника репозитория -->
-        <GroupBox Header="Источник репозитория" Margin="10" Grid.ColumnSpan="3">
+        <GroupBox Header="Источник репозитория" Margin="10" Grid.ColumnSpan="3" Name="SourceGroupBox">
             <StackPanel Orientation="Vertical" Margin="5">
                 <RadioButton Content="Локальная папка" IsChecked="True" GroupName="RepoSource" Name="LocalFolderRadioButton" Checked="SourceTypeRadioButton_Checked"/>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Путь к локальной папке:" Margin="5,5,5,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Путь к локальной папке:" Margin="5,5,5,0" VerticalAlignment="Center" Name="LocalFolderPathTextBlock"/>
                     <TextBox Name="LocalFolderPathTextBox" Width="300" Margin="5,0,5,5" IsEnabled="True" TextChanged="LocalFolderPathTextBox_TextChanged"/>
                     <Button Content="Обзор" Margin="5" Padding="5,2" Name="BrowseFolderButton" Click="BrowseFolderButton_Click"/>
                 </StackPanel>
@@ -33,16 +38,13 @@
             </StackPanel>
         </GroupBox>
 
-        <!-- Дерево директорий -->
-        <GroupBox Header="Выбор файлов и директорий" Margin="10" Grid.Row="1" Grid.Column="0">
+        <GroupBox Header="Выбор файлов и директорий" Margin="10" Grid.Row="1" Grid.Column="0" Name="FileSelectionGroupBox">
             <TreeView Name="DirectoryTreeView" Margin="5"  SelectedItemChanged="DirectoryTreeView_SelectedItemChanged"/>
         </GroupBox>
 
-        <!-- Разделитель -->
         <GridSplitter Grid.Column="1" Grid.Row="1" Width="5" HorizontalAlignment="Center" ResizeDirection="Columns" />
 
-        <!-- Фильтр расширений файлов -->
-        <GroupBox Header="Фильтр расширений файлов" Margin="10" Grid.Row="1" Grid.Column="2">
+        <GroupBox Header="Фильтр расширений файлов" Margin="10" Grid.Row="1" Grid.Column="2" Name="ExtensionFilterGroupBox">
             <ListBox Name="ExtensionListBox" Margin="5" SelectionMode="Multiple">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
@@ -53,10 +55,10 @@
         </GroupBox>
 
 
-        <!-- Настройки вывода и генерация -->
-        <GroupBox Header="Настройки вывода" Margin="10" Grid.Row="2" Grid.ColumnSpan="3">
+        <GroupBox Header="Настройки вывода" Margin="10" Grid.Row="2" Grid.ColumnSpan="3" Name="OutputSettingsGroupBox">
             <StackPanel Orientation="Horizontal" Margin="5">
                 <Button Content="Сгенерировать датасет" Margin="5" Padding="10,5" Name="GenerateDatasetButton" Click="GenerateDatasetButton_Click"/>
+                <CheckBox Content="Копировать в буфер обмена" Margin="5" IsChecked="True" VerticalAlignment="Center" Name="CopyToClipboardCheckBox"/>
             </StackPanel>
         </GroupBox>
     </Grid>

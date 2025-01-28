@@ -17,7 +17,7 @@ namespace RepoToLLMDatasetGenerator
             outputStrings.Add("================================================================");
             outputStrings.Add("File Summary");
             outputStrings.Add("================================================================");
-            outputStrings.Add("(Metadata and usage AI instructions)\n"); // TODO: Добавить метаданные и инструкции
+            outputStrings.Add("(Metadata and usage AI instructions)\n");
 
             outputStrings.Add("================================================================");
             outputStrings.Add("Directory Structure");
@@ -28,7 +28,7 @@ namespace RepoToLLMDatasetGenerator
             outputStrings.Add("================================================================");
             outputStrings.Add("Files");
             outputStrings.Add("================================================================");
-            outputStrings.AddRange(GetFileContentStrings(selectedFiles));
+            outputStrings.AddRange(GetFileContentStrings(selectedFiles, rootDirectory));
 
             return outputStrings;
         }
@@ -36,12 +36,12 @@ namespace RepoToLLMDatasetGenerator
         private List<string> GetDirectoryStructureStrings(List<string> selectedFiles, string rootDirectory)
         {
             List<string> directoryStructureStrings = new List<string>();
-            HashSet<string> directories = new HashSet<string>(); // Use HashSet to avoid duplicates and for faster lookups
+            HashSet<string> directories = new HashSet<string>();
 
             foreach (string filePath in selectedFiles)
             {
                 string directoryPath = System.IO.Path.GetDirectoryName(filePath);
-                if (directoryPath != null && directoryPath.StartsWith(rootDirectory)) // Ensure directory is within the selected root
+                if (directoryPath != null && directoryPath.StartsWith(rootDirectory))
                 {
                     string relativeDirectoryPath = directoryPath.Substring(rootDirectory.Length).TrimStart(System.IO.Path.DirectorySeparatorChar);
                     if (!string.IsNullOrEmpty(relativeDirectoryPath))
@@ -51,24 +51,23 @@ namespace RepoToLLMDatasetGenerator
                 }
             }
 
-            foreach (string dir in directories.OrderBy(d => d)) // Order directories alphabetically
+            foreach (string dir in directories.OrderBy(d => d))
             {
                 directoryStructureStrings.Add(dir + "/");
             }
             return directoryStructureStrings;
         }
 
-
-        private List<string> GetFileContentStrings(List<string> selectedFiles)
+        private List<string> GetFileContentStrings(List<string> selectedFiles, string rootDirectory)
         {
             List<string> fileContentStrings = new List<string>();
 
             foreach (string filePath in selectedFiles)
             {
-                if (!File.Exists(filePath)) continue; // Проверка на случай если файл был удален или не существует
-
+                if (!File.Exists(filePath)) continue;
+                string file = filePath.Substring(rootDirectory.Length).TrimStart(System.IO.Path.DirectorySeparatorChar);
                 fileContentStrings.Add($"\n================");
-                fileContentStrings.Add($"File: {filePath}");
+                fileContentStrings.Add($"File: {file}");
                 fileContentStrings.Add($"================");
                 try
                 {
@@ -77,7 +76,7 @@ namespace RepoToLLMDatasetGenerator
                 }
                 catch (Exception ex)
                 {
-                    fileContentStrings.Add($"\n--- Ошибка чтения файла: {filePath} ---\n{ex.Message}\n---");
+                    fileContentStrings.Add($"\n--- Ошибка чтения файла: {file} ---\n{ex.Message}\n---");
                 }
             }
             return fileContentStrings;

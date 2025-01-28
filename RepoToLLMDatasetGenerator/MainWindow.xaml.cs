@@ -28,23 +28,36 @@ namespace RepoToLLMDatasetGenerator
         private List<string> selectedFiles = new List<string>();
         private Dictionary<string, bool> directoryCheckedState = new Dictionary<string, bool>();
         private ObservableCollection<ExtensionItem> extensionListItems = new ObservableCollection<ExtensionItem>();
+        private string currentLanguage = "ru"; // Default language
+
 
         public MainWindow()
         {
             InitializeComponent();
             ExtensionListBox.ItemsSource = extensionListItems;
+            UpdateUIStrings();
+
+        }
+
+        private void LanguageButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button button)
+            {
+                currentLanguage = button.Tag.ToString();
+                UpdateUIStrings();
+            }
         }
 
         private void BrowseFolderButton_Click(object sender, RoutedEventArgs e)
         {
-            //var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
-            //System.Windows.Forms.DialogResult result = folderDialog.ShowDialog();
+            var folderDialog = new System.Windows.Forms.FolderBrowserDialog();
+            System.Windows.Forms.DialogResult result = folderDialog.ShowDialog();
 
-            //if (result == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(folderDialog.SelectedPath))
-            //{
-            //    LocalFolderPathTextBox.Text = folderDialog.SelectedPath;
-            //    PopulateDirectoryTreeView(folderDialog.SelectedPath);
-            //}
+            if (result == System.Windows.Forms.DialogResult.OK && !string.IsNullOrWhiteSpace(folderDialog.SelectedPath))
+            {
+                LocalFolderPathTextBox.Text = folderDialog.SelectedPath;
+                PopulateDirectoryTreeView(folderDialog.SelectedPath);
+            }
         }
 
         private void LocalFolderPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -119,13 +132,13 @@ namespace RepoToLLMDatasetGenerator
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка доступа к директории: {parentPath} - {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"Ошибка доступа к директории: {parentPath} - {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private TreeViewItem CreateTreeViewItem(string path, bool isDirectory)
         {
-            CheckBox checkBox = new CheckBox() { Content = System.IO.Path.GetFileName(path), Tag = path };
+            System.Windows.Controls.CheckBox checkBox = new System.Windows.Controls.CheckBox() { Content = System.IO.Path.GetFileName(path), Tag = path };
             checkBox.Checked += ItemCheckBox_Checked;
             checkBox.Unchecked += ItemCheckBox_Unchecked;
 
@@ -145,7 +158,7 @@ namespace RepoToLLMDatasetGenerator
                 string directoryPath = item.Tag.ToString();
                 if (directoryCheckedState.ContainsKey(directoryPath) && directoryCheckedState[directoryPath])
                 {
-                    CheckBox headerCheckBox = (CheckBox)item.Header;
+                    System.Windows.Controls.CheckBox headerCheckBox = (System.Windows.Controls.CheckBox)item.Header;
                     if (headerCheckBox != null && headerCheckBox.IsChecked != true)
                     {
                         headerCheckBox.IsChecked = true;
@@ -160,39 +173,81 @@ namespace RepoToLLMDatasetGenerator
         {
             if (string.IsNullOrEmpty(LocalFolderPathTextBox.Text))
             {
-                MessageBox.Show("Пожалуйста, выберите локальную папку.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show(currentLanguage == "ru" ? "Пожалуйста, выберите локальную папку." : (currentLanguage == "zh" ? "请选择本地文件夹。" : "Please select a local folder."), currentLanguage == "ru" ? "Предупреждение" : (currentLanguage == "zh" ? "警告" : "Warning"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             if (selectedFiles.Count == 0)
             {
-                MessageBox.Show("Пожалуйста, выберите файлы и/или директории для включения в датасет.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show(currentLanguage == "ru" ? "Пожалуйста, выберите файлы и/или директории для включения в датасет." : (currentLanguage == "zh" ? "请选择要包含在数据集中的文件和/或目录。" : "Please select files and/or directories to include in the dataset."), currentLanguage == "ru" ? "Предупреждение" : (currentLanguage == "zh" ? "警告" : "Warning"), MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-
 
             List<string> filteredSelectedFiles = FilterFilesByExtension(selectedFiles);
             DatasetGenerator generator = new DatasetGenerator();
             List<string> datasetStrings = generator.GenerateDatasetStrings(filteredSelectedFiles, LocalFolderPathTextBox.Text);
             string datasetContent = string.Join("\n", datasetStrings);
 
-            string outputFileName = System.IO.Path.GetFileName(LocalFolderPathTextBox.Text) + "_dataset.txt";
-            string outputPath = System.IO.Path.Combine(Environment.CurrentDirectory, outputFileName);
-
-            try
+            if (CopyToClipboardCheckBox.IsChecked == true)
             {
-                File.WriteAllText(outputPath, datasetContent, Encoding.UTF8);
-                MessageBox.Show($"Датасет успешно сгенерирован и сохранен в файл:\n{outputPath}", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                System.Windows.Clipboard.SetText(datasetContent);
+                System.Windows.MessageBox.Show(currentLanguage == "ru" ? "Датасет скопирован в буфер обмена." : (currentLanguage == "zh" ? "数据集已复制到剪贴板。" : "Dataset copied to clipboard."), currentLanguage == "ru" ? "Успех" : (currentLanguage == "zh" ? "成功" : "Success"), MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show($"Ошибка при сохранении файла: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                string outputFileName = System.IO.Path.GetFileName(LocalFolderPathTextBox.Text) + "_dataset.txt";
+                string outputPath = System.IO.Path.Combine(Environment.CurrentDirectory, outputFileName);
+
+                try
+                {
+                    File.WriteAllText(outputPath, datasetContent, Encoding.UTF8);
+                    System.Windows.MessageBox.Show(string.Format(currentLanguage == "ru" ? "Датасет успешно сгенерирован и сохранен в файл:\n{0}" : (currentLanguage == "zh" ? "数据集已成功生成并保存到文件：\n{0}" : "Dataset successfully generated and saved to file:\n{0}"), outputPath), currentLanguage == "ru" ? "Успех" : (currentLanguage == "zh" ? "成功" : "Success"), MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(string.Format(currentLanguage == "ru" ? "Ошибка при сохранении файла: {0}" : (currentLanguage == "zh" ? "保存文件时出错：{0}" : "Error saving file: {0}"), ex.Message), currentLanguage == "ru" ? "Ошибка" : (currentLanguage == "zh" ? "错误" : "Error"), MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
+
+        //private void GenerateDatasetButton_Click(object sender, RoutedEventArgs e)
+        //{
+        //    if (string.IsNullOrEmpty(LocalFolderPathTextBox.Text))
+        //    {
+        //        MessageBox.Show("Пожалуйста, выберите локальную папку.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+        //        return;
+        //    }
+
+        //    if (selectedFiles.Count == 0)
+        //    {
+        //        MessageBox.Show("Пожалуйста, выберите файлы и/или директории для включения в датасет.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+        //        return;
+        //    }
+
+
+        //    List<string> filteredSelectedFiles = FilterFilesByExtension(selectedFiles);
+        //    DatasetGenerator generator = new DatasetGenerator();
+        //    List<string> datasetStrings = generator.GenerateDatasetStrings(filteredSelectedFiles, LocalFolderPathTextBox.Text);
+        //    string datasetContent = string.Join("\n", datasetStrings);
+
+        //    string outputFileName = System.IO.Path.GetFileName(LocalFolderPathTextBox.Text) + "_dataset.txt";
+        //    string outputPath = System.IO.Path.Combine(Environment.CurrentDirectory, outputFileName);
+
+        //    try
+        //    {
+        //        File.WriteAllText(outputPath, datasetContent, Encoding.UTF8);
+        //        MessageBox.Show($"Датасет успешно сгенерирован и сохранен в файл:\n{outputPath}", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($"Ошибка при сохранении файла: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+        //    }
+        //}
+
         private void ItemCheckBox_Checked(object sender, RoutedEventArgs e)
         {
-            CheckBox checkBox = (CheckBox)sender;
+            System.Windows.Controls.CheckBox checkBox = (System.Windows.Controls.CheckBox)sender;
             string path = checkBox.Tag.ToString();
             TreeViewItem item = (TreeViewItem)checkBox.Parent;
 
@@ -215,7 +270,7 @@ namespace RepoToLLMDatasetGenerator
 
         private void ItemCheckBox_Unchecked(object sender, RoutedEventArgs e)
         {
-            CheckBox checkBox = (CheckBox)sender;
+            System.Windows.Controls.CheckBox checkBox = (System.Windows.Controls.CheckBox)sender;
             string path = checkBox.Tag.ToString();
             TreeViewItem item = (TreeViewItem)checkBox.Parent;
 
@@ -241,7 +296,7 @@ namespace RepoToLLMDatasetGenerator
             {
                 if (childItem is TreeViewItem treeViewChild)
                 {
-                    CheckBox childCheckBox = (CheckBox)treeViewChild.Header as CheckBox; // Safe cast
+                    System.Windows.Controls.CheckBox childCheckBox = (System.Windows.Controls.CheckBox)treeViewChild.Header as System.Windows.Controls.CheckBox; // Safe cast
                     if (childCheckBox != null)
                     {
                         childCheckBox.IsChecked = isChecked;
@@ -315,6 +370,52 @@ namespace RepoToLLMDatasetGenerator
             return filteredFiles;
         }
 
+        private void UpdateUIStrings()
+        {
+            // Update UI elements based on the current language
+            switch (currentLanguage)
+            {
+                case "ru":
+                    Title = "Генератор датасета для LLM";
+                    SourceGroupBox.Header = "Источник репозитория";
+                    LocalFolderRadioButton.Content = "Локальная папка";
+                    LocalFolderPathTextBlock.Text = "Путь к локальной папке:";
+                    BrowseFolderButton.Content = "Обзор";
+                    RemoteRepoRadioButton.Content = "URL удаленного репозитория (Git - в разработке)";
+                    FileSelectionGroupBox.Header = "Выбор файлов и директорий";
+                    ExtensionFilterGroupBox.Header = "Фильтр расширений файлов";
+                    OutputSettingsGroupBox.Header = "Настройки вывода";
+                    GenerateDatasetButton.Content = "Сгенерировать датасет";
+                    CopyToClipboardCheckBox.Content = "Копировать в буфер обмена";
+                    break;
+                case "zh":
+                    Title = "LLM数据集生成器";
+                    SourceGroupBox.Header = "仓库来源";
+                    LocalFolderRadioButton.Content = "本地文件夹";
+                    LocalFolderPathTextBlock.Text = "本地文件夹路径：";
+                    BrowseFolderButton.Content = "浏览";
+                    RemoteRepoRadioButton.Content = "远程仓库URL（Git - 开发中）";
+                    FileSelectionGroupBox.Header = "选择文件和目录";
+                    ExtensionFilterGroupBox.Header = "文件扩展名过滤器";
+                    OutputSettingsGroupBox.Header = "输出设置";
+                    GenerateDatasetButton.Content = "生成数据集";
+                    CopyToClipboardCheckBox.Content = "复制到剪贴板";
+                    break;
+                case "en":
+                    Title = "LLM Dataset Generator";
+                    SourceGroupBox.Header = "Repository Source";
+                    LocalFolderRadioButton.Content = "Local Folder";
+                    LocalFolderPathTextBlock.Text = "Local Folder Path:";
+                    BrowseFolderButton.Content = "Browse";
+                    RemoteRepoRadioButton.Content = "Remote Repository URL (Git - in development)";
+                    FileSelectionGroupBox.Header = "Select Files and Directories";
+                    ExtensionFilterGroupBox.Header = "File Extension Filter";
+                    OutputSettingsGroupBox.Header = "Output Settings";
+                    GenerateDatasetButton.Content = "Generate Dataset";
+                    CopyToClipboardCheckBox.Content = "Copy to Clipboard";
+                    break;
+            }
+        }
 
     }
 
