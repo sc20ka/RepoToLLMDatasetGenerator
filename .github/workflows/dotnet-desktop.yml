@@ -10,11 +10,11 @@ jobs:
   build:
     strategy:
       matrix:
-        configuration: [Release] # убираем debug, чтобы не собирать дебаг релиз, если нужно, то вернуть
+        configuration: [Release] # убираем debug
     runs-on: windows-latest
     env:
-      Solution_Name: your-solution-name.sln
-      Wpf_Project_Path: your-wpf-project-path/your-wpf-project.csproj
+      Solution_Name: RepoToLLMDatasetGenerator.sln
+      Wpf_Project_Path: RepoToLLMDatasetGenerator/RepoToLLMDatasetGenerator.csproj
       Architecture: x86 # Set the desired architecture
     steps:
       - name: Checkout
@@ -37,10 +37,10 @@ jobs:
         run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
 
       - name: Publish the application
-        run: dotnet publish $env:Wpf_Project_Path -c $env:Configuration -r win-$env:Architecture /p:PublishSingleFile=true /p:SelfContained=true /p:PublishReadyToRun=true /p:TrimUnusedCode=true
+        run: msbuild $env:Wpf_Project_Path /p:Configuration=$env:Configuration /p:Platform=$env:Architecture /t:publish
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: SingleFileApp
+          name: PublishedApp
           path: ${{ github.workspace }}/your-wpf-project-path/bin/$env:Configuration/net8.0-windows/win-$env:Architecture/publish/*
